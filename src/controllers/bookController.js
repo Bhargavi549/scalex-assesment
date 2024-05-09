@@ -1,5 +1,6 @@
 const Book = require('../services/bookServices');
 const User = require('../services/userServices');
+const fs = require('fs');
 
 const addBook = async (req, res) => {
   try {
@@ -8,7 +9,6 @@ const addBook = async (req, res) => {
     if (typeof title !== 'string' || typeof author !== 'string') {
       return res.status(400).json({ message: 'Book Name and Author should be strings' });
     }
-    console.log(".............", typeof publicationYear, typeof title, typeof author);
     if (typeof publicationYear !== 'number' || isNaN(publicationYear) || publicationYear < 0 || publicationYear > new Date().getFullYear()) {
       return res.status(400).json({ message: 'Publication year should be a valid number representing a year' });
     }
@@ -26,7 +26,7 @@ const addBook = async (req, res) => {
       return res.status(403).json({message: 'book name already exist'})
     }
 
-    await Book.addBook(title, author, publicationYear);
+   fs.appendFileSync('regularUser.csv', `${title},${author},${publicationYear}\n`);
 
     res.status(201).json({message: "Book added successfully" });
   } catch (err) {
@@ -49,7 +49,7 @@ const getAllBooks = async (req, res) => {
 
 const deleteBook = async (req, res) => {
   try {
-    const { userId, bookId } = req.body;
+    const { userId, bookName } = req.body;
     
     const user = await User.findByUserId(userId);
     if(!user) {
@@ -60,7 +60,13 @@ const deleteBook = async (req, res) => {
       return res.status(403).json({ message: 'not allowed' });
     }
 
-    await Book.deleteBook(bookId);
+    let books = fs.readFileSync('adminUser.csv', 'utf8').split('\n');
+    books = books.filter(book => book.toLowerCase().split(',')[0] !== bookName.toLowerCase());
+    fs.writeFileSync('adminUser.csv', books.join('\n'));
+
+    books = fs.readFileSync('regularUser.csv', 'utf8').split('\n');
+    books = books.filter(book => book.toLowerCase().split(',')[0] !== bookName.toLowerCase());
+    fs.writeFileSync('regularUser.csv', books.join('\n'));
 
     res.status(200).json({message: "Book deleted successfully" });
   } catch (err) {

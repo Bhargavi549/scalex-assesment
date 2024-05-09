@@ -1,26 +1,32 @@
 const { getBooksForAdmin, getBooksForUser } = require("../services/homeSerives");
 const User = require("../services/userServices");
+const fs = require('fs');
 
 
-const getBooksData = async(req,res) => {
+const getBooksData = async (req, res) => {
     try {
-        console.log("user....", req.body,req.files)
-        const {userId} = req.body;
-        const userDetails = await User.findByUserId(4);
-        
+        const { userId } = req.body;
+        const userDetails = await User.findByUserId(userId);
+
         if (!userDetails) {
-          res.status(403).json({message: 'user not found'})
+            res.status(403).json({ message: 'user not found' })
         }
+        let regularBookNames = [];
+
+        // Read regular user books
+        const regularBooks = fs.readFileSync('regularUser.csv', 'utf8').split('\n');
+        regularBookNames = regularBooks.map(book => book.split(',')[0]);
+
+        // If user is admin, read admin user books and append to regular books list
         if (userDetails.userType === 'admin') {
-            const data = await getBooksForAdmin(req);
-            res.status(200).json({data})
+            const adminBooks = fs.readFileSync('adminUser.csv', 'utf8').split('\n');
+            const adminBookNames = adminBooks.map(book => book.split(',')[0]);
+            regularBookNames = regularBookNames.concat(adminBookNames);
         }
-        if (userDetails.userType === 'regular') {
-           const data = await getBooksForUser(req);
-           res.status(200).json({data})
-        }
+
+        res.status(200).json({data: regularBookNames })
     } catch (error) {
         throw error
     }
 }
-module.exports = {getBooksData};
+module.exports = { getBooksData };

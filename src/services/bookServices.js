@@ -3,18 +3,18 @@ const config = require("../../config/config");
 
 const db = knex(config.db)
 
-const addBook = async (title, author, publicationYear) => {
-  try {
-    const [bookId] = await db("books").insert({
-      title,
-      author,
-      publicationYear
-    });
-    return bookId;
-  } catch (err) {
-    throw err;
-  }
-};
+// const addBook = async (title, author, publicationYear) => {
+//   try {
+//     const [bookId] = await db("books").insert({
+//       title,
+//       author,
+//       publicationYear
+//     });
+//     return bookId;
+//   } catch (err) {
+//     throw err;
+//   }
+// };
 const getAllBooks = async () => {
   try {
     const books = await db('books').select('*')
@@ -41,7 +41,4 @@ const findByBook = async (title) => {
   }
 };
 
-
-
-
-module.exports = { addBook, getAllBooks, deleteBook, findByBook };
+module.exports = { getAllBooks, deleteBook, findByBook };
