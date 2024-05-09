@@ -1,50 +1,51 @@
-const User = require('../models/user');
+const User = require('../services/userServices');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-exports.register = async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-    const user = new User();
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'Username, email, and password are required' });
+const authController = {
+  register: async (req, res) => {
+    try {
+      const { username, password, email, userType } = req.body;
+      const existingUser = await User.findByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = {
+        username,
+        password: hashedPassword,
+        email,
+        userType
+      };
+     await User.createUser(newUser);
+      res.status(201).json({ message: "User registration successful" });
+    } catch (err) {
+      console.log("Error during registration:", err);
+      res.status(500).json({ err: "Internal server error" });
     }
+  },
+  login: async (req, res) => {
+    try {
+      const { username, password } = req.body;
 
-    const existingUser = await user.findByUsername(username);
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this username already exists' });
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password are required' });
+      }
+
+      const user = await User.authenticate(username, password);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      token = jwt.sign({ user: user }, process.env.TOKEN_SECRET_KEY, {
+        expiresIn: 3600,
+      });
+
+      res.status(200).json({ message: 'Login successful', username: user.username, token });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
     }
-
-    await user.createUser(username, email, password);
-
-    res.status(201).json({ message: 'User registered successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-exports.login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const user = new User();
-
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
-    }
-
-    const userData = await user.findByUsername(username);
-    if (!userData) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const passwordMatch = await user.comparePasswords(password, userData.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    res.status(200).json({ message: 'Login successful', user: userData });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
+module.exports = authController;

@@ -7,7 +7,7 @@ exports.up = function(knex) {
         table.increments('id').primary();
         table.string('title').notNullable();
         table.string('author').notNullable();
-        table.integer('publication_year').notNullable();
+        table.integer('publicationYear').notNullable();
         table.timestamps(true, true);
       });
 };

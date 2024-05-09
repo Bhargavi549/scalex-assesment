@@ -1,8 +1,9 @@
 require("dotenv").config();
 
+
 module.exports = {
-  development: {
-    db: "mysql",
+  db: {
+    client: 'mysql',
     connection: {
       host: '127.0.0.1',
       user: 'root',
@@ -13,5 +14,5 @@ module.exports = {
       tableName: "knex_migrations",
       directory: "./src/migrations",
     },
-  },
+  }
 };
