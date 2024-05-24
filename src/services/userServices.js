@@ -1,47 +1,50 @@
 const knex = require("knex");
 const config = require("../../config/config");
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+const { json } = require("body-parser");
 
 const db = knex(config.db);
 
-const userModel = {
-  createUser: async (user)=>{
-      try {
-          const [userId] = await db("users").insert({
-              username: user.username,
-              email: user.email,
-              password: user.password
-          })
-          return userId
-      } catch (error) {
-         throw error 
-      } 
-  },
-  findByEmail: async (email)=>{
+
+  const createUser= async (user) => {
     try {
-      const user = await db("users").where({email}).first();
-      return user        
+      const [userId, email] = await db("users").insert({
+        username: user.username,
+        email: user.email,
+        password: user.password,
+        otp:await generateOTP()
+      })
+      return { userId, email }
     } catch (error) {
       throw error
     }
-  },
-  findById: async (id)=>{
-      try {
-        const userDetails = await db("users").where("id",id).first();
-        return userDetails  
-      } catch (error) {
-         throw error 
-      }
-  },
-  getAllUsers: async ()=>{
-      try {
-         const user = await db("user").select('*') 
-         return user
-      } catch (error) {
-        throw error  
-      }
-  },
-  authenticate: async (email, password) => {
+  }
+  const findByEmail= async (email) => {
+    try {
+      const user = await db("users").where({ email }).first();
+      return user
+    } catch (error) {
+      throw error
+    }
+  }
+  const findById= async (id) => {
+    try {
+      const userDetails = await db("users").where("id", id).first();
+      return userDetails
+    } catch (error) {
+      throw error
+    }
+  }
+  const getAllUsers= async () => {
+    try {
+      const user = await db("user").select('*')
+      return user
+    } catch (error) {
+      throw error
+    }
+  }
+  const authenticate= async (email, password) => {
     try {
       const user = await userModel.findByEmail(email);
       if (!user) {
@@ -56,14 +59,61 @@ const userModel = {
     } catch (err) {
       throw err;
     }
-  },
-  deleteUserByEmail: async (email)=>{
+  }
+  const deleteUserByEmail= async (email) => {
     try {
-      const deleteuser = await db("user").where({ email }).del()
+      const deleteuser = await db("users").where({ email }).del()
       return deleteuser
     } catch (error) {
       throw error
     }
   }
-}
-module.exports = userModel;
+  const sendMail= async (email) => {
+    try {
+      const user = await db("users").where({ email }).first();
+      let transporter = nodemailer.createTransport({
+        service: 'gmail', 
+        auth: {
+          user: '',  //user email
+          pass: ''   // user password
+        }
+      });
+      let mailOptions = {
+        from: '',    //sender mail
+        to:user.email,      // receiver mail
+        subject: 'otp verification',
+        text: `otp for email verification is ${user.otp}`
+      };
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+      });
+    } catch (error) {
+      throw error
+    }
+  }
+  const verifyEmailOtp = async (email,otp) => {
+    try {
+      const user = await db("users").where({ email }).first()
+      if (!user) {
+        throw "email not found"
+      }
+      if (user.otp == otp) {
+       const user =  await db("users").where({ id }).update({ isEmailverified: 1 });
+        return user
+      }else {
+        throw "incorrect otp"
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000);
+  }
+
+module.exports = {createUser, deleteUserByEmail, findByEmail, getAllUsers,sendMail,findById,authenticate, verifyEmailOtp}

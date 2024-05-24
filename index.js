@@ -24,7 +24,8 @@ app.use((req, res, next) => {
     });
   } else if (
     req.path != "/api/login" &&
-    req.path != "/api/register"
+    req.path != "/api/register" && 
+    req.path != "/api/verify"
   ) {
     var token = req.body.token || req.query.token || req.headers["auth-token"];
     if (!token)
